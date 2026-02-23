@@ -12,6 +12,11 @@ wheels = [
 ]
 
 [[package]]
+name = "fncli"
+version = "0.0.1"
+source = { git = "https://github.com/iteebz/fncli.git#b98d8beb34f864cea4c7bae62957423a8fdf8cee" }
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -114,6 +119,9 @@ wheels = [
 name = "sesh"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "fncli" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -123,6 +131,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "fncli", git = "https://github.com/iteebz/fncli.git" }]
 
 [package.metadata.requires-dev]
 dev = [
