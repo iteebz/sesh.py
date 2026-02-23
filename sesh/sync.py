@@ -9,8 +9,11 @@ from sesh.discover import SESSIONS_ROOT
 echo = print
 
 JSONL_SOURCES = [
-    ("~/Library/Application Support/Claude/projects", "claude"),
+    ("~/.claude/projects", "claude"),
     ("~/.codex/sessions", "codex"),
+    ("~/.sessions/claude", "claude"),
+    ("~/.sessions/codex", "codex"),
+    ("~/.sessions/gemini", "gemini"),
 ]
 
 GEMINI_SOURCE = "~/.gemini/tmp"

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-SESSIONS_ROOT = Path("~/.space/sessions").expanduser()
+SESSIONS_ROOT = Path("~/.sesh").expanduser()
 
 
 @dataclass
@@ -24,14 +24,17 @@ class SessionFile:
     def created_at(self) -> datetime:
         try:
             with self.path.open() as f:
-                first_line = f.readline()
-            raw = json.loads(first_line)
-            ts = raw.get("timestamp")
-            if ts:
-                return datetime.fromisoformat(ts).astimezone()
+                for _ in range(5):
+                    line = f.readline()
+                    if not line:
+                        break
+                    raw = json.loads(line)
+                    ts = raw.get("timestamp")
+                    if ts:
+                        return datetime.fromisoformat(ts).astimezone()
         except Exception:  # noqa: S110
             pass
-        return datetime.fromtimestamp(self.mtime)
+        return datetime.fromtimestamp(self.mtime).astimezone()
 
     @property
     def created_at_ts(self) -> float:
