@@ -4,6 +4,25 @@ default:
 install:
     @uv sync
     @just hooks
+    @just launchd
+
+launchd:
+    #!/bin/sh
+    PLIST="com.iteebz.sesh-sync"
+    SRC="$(pwd)/scripts/${PLIST}.plist"
+    DEST="$HOME/Library/LaunchAgents/${PLIST}.plist"
+    cp "$SRC" "$DEST"
+    launchctl unload "$DEST" 2>/dev/null || true
+    launchctl load "$DEST"
+    echo "  sesh-sync agent loaded"
+
+uninstall-launchd:
+    #!/bin/sh
+    PLIST="com.iteebz.sesh-sync"
+    DEST="$HOME/Library/LaunchAgents/${PLIST}.plist"
+    launchctl unload "$DEST" 2>/dev/null || true
+    rm -f "$DEST"
+    echo "  sesh-sync agent removed"
 
 hooks:
     @cp scripts/hooks/pre-commit .git/hooks/pre-commit
