@@ -5,7 +5,16 @@ requires-python = ">=3.12"
 [[package]]
 name = "atail"
 version = "0.1.0"
-source = { git = "https://github.com/iteebz/atail.git#9947ea74bea35399c667fa657b57971a239fe8e8" }
+source = { editable = "../../space/atrace" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.408" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "ruff", specifier = ">=0.13.0" },
+]
 
 [[package]]
 name = "colorama"
@@ -19,7 +28,16 @@ wheels = [
 [[package]]
 name = "fncli"
 version = "0.0.1"
-source = { git = "https://github.com/iteebz/fncli.git#9c709e076aa246cd8d6c60c9c214310666e44164" }
+source = { editable = "../../space/fncli" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.408" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.13.0" },
+]
 
 [[package]]
 name = "iniconfig"
@@ -138,8 +156,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atail", git = "https://github.com/iteebz/atail.git" },
-    { name = "fncli", git = "https://github.com/iteebz/fncli.git" },
+    { name = "atail", editable = "../../space/atrace" },
+    { name = "fncli", editable = "../../space/fncli" },
 ]
 
 [package.metadata.requires-dev]

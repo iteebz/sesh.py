@@ -93,8 +93,8 @@ ignore = [
 "tests/**/*.py" = ["S101", "S105", "S607", "S606"]
 
 [tool.uv.sources]
-fncli = { git = "https://github.com/iteebz/fncli.git" }
-atail = { git = "https://github.com/iteebz/atail.git" }
+fncli = { path = "/Users/iteebz/space/fncli", editable = true }
+atail = { path = "/Users/iteebz/space/atrace", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
