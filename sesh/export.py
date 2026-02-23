@@ -2,6 +2,7 @@ from pathlib import Path
 
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import Session, parse_session
+
 echo = print
 
 

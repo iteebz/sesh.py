@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 
 from sesh.discover import discover_sessions
+
 echo = print
 
 

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import TokenUsage, parse_session
+
 echo = print
 
 CLAUDE_PRICING = {

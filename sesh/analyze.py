@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from sesh.discover import discover_sessions
 from sesh.parse import parse_session
+
 echo = print
 
 

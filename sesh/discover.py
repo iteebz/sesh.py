@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 SESSIONS_ROOT = Path("~/.space/sessions").expanduser()
@@ -28,8 +28,8 @@ class SessionFile:
             raw = json.loads(first_line)
             ts = raw.get("timestamp")
             if ts:
-                return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
-        except Exception:
+                return datetime.fromisoformat(ts).astimezone()
+        except Exception:  # noqa: S110
             pass
         return datetime.fromtimestamp(self.mtime)
 

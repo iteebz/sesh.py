@@ -1,5 +1,6 @@
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import parse_session
+
 echo = print
 
 

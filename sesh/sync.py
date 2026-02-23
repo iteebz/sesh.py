@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 from sesh.discover import SESSIONS_ROOT
+
 echo = print
 
 JSONL_SOURCES = [
