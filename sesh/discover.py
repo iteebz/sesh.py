@@ -2,6 +2,16 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import TypedDict
+
+
+class IndexEntry(TypedDict):
+    mtime: float
+    size: int
+    created_at: str | None
+    has_assistant_turn: bool
+    line_count: int
+
 
 SESSIONS_ROOT = Path("~/.sesh").expanduser()
 INDEX_PATH = SESSIONS_ROOT / "index.json"
@@ -81,7 +91,7 @@ class SessionFile:
         return self.created_at.timestamp()
 
 
-def _load_index() -> dict[str, dict] | None:
+def _load_index() -> dict[str, IndexEntry] | None:
     if not INDEX_PATH.exists():
         return None
     try:
@@ -91,8 +101,8 @@ def _load_index() -> dict[str, dict] | None:
         return None
 
 
-def build_index() -> dict[str, dict]:
-    index: dict[str, dict] = {}
+def build_index() -> dict[str, IndexEntry]:
+    index: dict[str, IndexEntry] = {}
     if not SESSIONS_ROOT.exists():
         return index
 

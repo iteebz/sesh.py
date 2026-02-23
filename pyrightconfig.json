@@ -1,6 +1,8 @@
 {
   "include": ["sesh"],
-  "pythonVersion": "3.12",
+  "pythonVersion": "3.14",
+  "venvPath": ".",
+  "venv": ".venv",
   "typeCheckingMode": "strict",
   "reportUnnecessaryTypeIgnoreComment": true,
   "reportIncompatibleMethodOverride": true,
@@ -14,5 +16,6 @@
   "reportMissingParameterType": false,
   "reportPrivateUsage": false,
   "reportUnknownVariableType": false,
-  "reportUnknownParameterType": false
+  "reportUnknownParameterType": false,
+  "reportUntypedFunctionDecorator": false
 }

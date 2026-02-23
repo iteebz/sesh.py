@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from fncli import cli
 
 from sesh.discover import discover_sessions
@@ -6,7 +8,7 @@ from sesh.stats import format_size
 echo = print
 
 
-def percentile(data: list[int | float], p: float) -> float:
+def percentile(data: Sequence[int | float], p: float) -> float:
     if not data:
         return 0
     s = sorted(data)
@@ -14,7 +16,9 @@ def percentile(data: list[int | float], p: float) -> float:
     return s[min(idx, len(s) - 1)]
 
 
-def histogram(data: list[int | float], buckets: list[tuple[str, float, float]], total: int) -> None:
+def histogram(
+    data: Sequence[int | float], buckets: list[tuple[str, float, float]], total: int
+) -> None:
     for label, lo, hi in buckets:
         count = sum(1 for v in data if lo <= v < hi)
         bar_len = int((count / max(total, 1)) * 25)
