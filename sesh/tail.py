@@ -1,4 +1,4 @@
-from atail import StreamParser, format_entry, strip
+from atrace import StreamParser, format_entry, strip
 from fncli import cli
 
 from sesh.discover import discover_sessions

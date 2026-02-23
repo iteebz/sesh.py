@@ -10,7 +10,7 @@ authors = [{name = "Tyson Chan", email = "tyson.chan@proton.me"}]
 requires-python = ">=3.12"
 dependencies = [
     "fncli",
-    "atail",
+    "atrace",
 ]
 
 [dependency-groups]
@@ -93,8 +93,8 @@ ignore = [
 "tests/**/*.py" = ["S101", "S105", "S607", "S606"]
 
 [tool.uv.sources]
-fncli = { path = "/Users/iteebz/space/fncli", editable = true }
-atail = { path = "/Users/iteebz/space/atrace", editable = true }
+fncli = { git = "https://github.com/iteebz/fncli.git" }
+atrace = { git = "https://github.com/iteebz/trace.git" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
