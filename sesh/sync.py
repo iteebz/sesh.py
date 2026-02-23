@@ -32,7 +32,9 @@ def sync_jsonl(dry_run: bool = False) -> dict[str, int]:
             dest_dir.mkdir(parents=True, exist_ok=True)
 
         for jsonl in source.rglob("*.jsonl"):
-            dest = dest_dir / jsonl.name
+            rel = jsonl.relative_to(source)
+            dest = dest_dir / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
 
             if dest.exists() and dest.stat().st_size == jsonl.stat().st_size:
                 stats["skipped"] += 1
