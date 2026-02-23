@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sesh"
+version = "0.1.0"
+description = "Sync and analyze LLM session traces"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+sesh = "sesh.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sesh"]
