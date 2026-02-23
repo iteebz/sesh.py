@@ -1,3 +1,5 @@
+from fncli import cli
+
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import parse_session
 
@@ -17,6 +19,7 @@ def truncate(text: str, max_len: int = 200) -> str:
     return text[:max_len] + "..."
 
 
+@cli("sesh", name="show", description="inspect a session")
 def run(session_id: str, raw: bool = False, events: bool = False):
     sf = find_session(session_id)
     if not sf:

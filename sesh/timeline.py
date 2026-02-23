@@ -1,11 +1,14 @@
 from collections import Counter
 from datetime import datetime, timedelta
 
+from fncli import cli
+
 from sesh.discover import discover_sessions
 
 echo = print
 
 
+@cli("sesh", name="timeline", description="activity timeline")
 def run(weeks: int = 12, provider: str | None = None):
     files = discover_sessions(provider_filter=provider)
 

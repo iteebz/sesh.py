@@ -1,6 +1,8 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
+from fncli import cli
+
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import TokenUsage, parse_session
 
@@ -43,6 +45,7 @@ def estimate_cost(tokens: TokenUsage) -> float:
     )
 
 
+@cli("sesh", name="stats", description="session analytics", default=True)
 def run(
     provider: str | None = None,
     tokens: bool = False,

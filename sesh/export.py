@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from fncli import cli
+
 from sesh.discover import SessionFile, discover_sessions
 from sesh.parse import Session, parse_session
 
@@ -78,6 +80,7 @@ def export_text(session: Session) -> str:
     return "\n".join(lines)
 
 
+@cli("sesh", name="export", description="export session to file")
 def run(session_id: str, format: str = "markdown", output: str | None = None):
     sf = find_session(session_id)
     if not sf:

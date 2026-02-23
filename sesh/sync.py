@@ -2,6 +2,8 @@ import json
 import shutil
 from pathlib import Path
 
+from fncli import cli
+
 from sesh.discover import SESSIONS_ROOT
 
 echo = print
@@ -134,6 +136,7 @@ def sync_sessions(dry_run: bool = False) -> dict[str, int]:
     }
 
 
+@cli("sesh", name="sync", description="sync sessions from native paths")
 def run(dry_run: bool = False):
     echo(f"Syncing to {SESSIONS_ROOT}")
     echo()

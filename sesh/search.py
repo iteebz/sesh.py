@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from fncli import cli
+
 from sesh.discover import discover_sessions
 
 echo = print
@@ -61,6 +63,7 @@ def search_file(path: Path, pattern: re.Pattern[str], context: int = 0) -> list[
     return matches
 
 
+@cli("sesh", name="search", description="search sessions by content")
 def run(
     query: str,
     provider: str | None = None,

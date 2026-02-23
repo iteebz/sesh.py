@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from fncli import cli
+
 from sesh import discover
 
 echo = print
@@ -80,7 +82,8 @@ def score() -> dict[str, Any]:
     }
 
 
-def cli() -> None:
+@cli("sesh", name="health", description="health score")
+def run() -> None:
     result = score()
     echo(f"health: {result['score']}/100 {'✓' if result['ok'] else '✗'}")
     for name, check in result["checks"].items():
@@ -88,7 +91,3 @@ def cli() -> None:
         echo(f"  {name}: {status} {check['detail']}")
     if not result["ok"]:
         raise SystemExit(1)
-
-
-if __name__ == "__main__":
-    cli()
