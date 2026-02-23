@@ -101,48 +101,21 @@ def _load_index() -> dict[str, IndexEntry] | None:
         return None
 
 
-def build_index() -> dict[str, IndexEntry]:
-    index: dict[str, IndexEntry] = {}
+def _iter_provider_files() -> list[tuple[str, Path]]:
     if not SESSIONS_ROOT.exists():
-        return index
-
+        return []
+    results: list[tuple[str, Path]] = []
     for provider_dir in SESSIONS_ROOT.iterdir():
         if not provider_dir.is_dir() or provider_dir.name.startswith("."):
             continue
         provider = provider_dir.name
-        for jsonl in provider_dir.glob("*.jsonl"):
-            key = f"{provider}/{jsonl.stem}"
-            created_at: str | None = None
-            has_assistant = False
-            line_count = 0
-            try:
-                with jsonl.open() as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        line_count += 1
-                        raw = json.loads(line)
-                        if created_at is None:
-                            ts = raw.get("timestamp")
-                            if ts:
-                                created_at = ts
-                        if not has_assistant and (
-                            raw.get("type") == "assistant" or raw.get("role") == "assistant"
-                        ):
-                            has_assistant = True
-            except Exception:  # noqa: S110
-                pass
-            index[key] = {
-                "mtime": jsonl.stat().st_mtime,
-                "size": jsonl.stat().st_size,
-                "created_at": created_at,
-                "has_assistant_turn": has_assistant,
-                "line_count": line_count,
-            }
+        results.extend((provider, jsonl) for jsonl in provider_dir.rglob("*.jsonl"))
+    return results
 
-    INDEX_PATH.write_text(json.dumps(index))
-    return index
+
+def _session_key(provider: str, jsonl: Path) -> str:
+    rel = jsonl.relative_to(SESSIONS_ROOT / provider)
+    return f"{provider}/{rel.with_suffix('').as_posix()}"
 
 
 def discover_sessions(provider_filter: str | None = None) -> list[SessionFile]:
@@ -153,20 +126,16 @@ def discover_sessions(provider_filter: str | None = None) -> list[SessionFile]:
 
     index = _load_index()
 
-    for provider_dir in SESSIONS_ROOT.iterdir():
-        if not provider_dir.is_dir() or provider_dir.name.startswith("."):
-            continue
-        provider = provider_dir.name
+    for provider, jsonl in _iter_provider_files():
         if provider_filter and provider != provider_filter:
             continue
-        for jsonl in provider_dir.glob("*.jsonl"):
-            key = f"{provider}/{jsonl.stem}"
-            sf = SessionFile(path=jsonl, provider=provider, session_id=jsonl.stem)
-            if index and key in index:
-                entry = index[key]
-                sf._line_count = entry.get("line_count")
-                sf._has_assistant_turn = entry.get("has_assistant_turn")
-            sessions.append(sf)
+        key = _session_key(provider, jsonl)
+        sf = SessionFile(path=jsonl, provider=provider, session_id=jsonl.stem)
+        if index and key in index:
+            entry = index[key]
+            sf._line_count = entry.get("line_count")
+            sf._has_assistant_turn = entry.get("has_assistant_turn")
+        sessions.append(sf)
 
     sessions.sort(key=lambda s: s.mtime, reverse=True)
     return sessions

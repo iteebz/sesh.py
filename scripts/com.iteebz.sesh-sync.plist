@@ -9,18 +9,13 @@
         <string>/Users/iteebz/.local/bin/sesh</string>
         <string>sync</string>
     </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>2</integer>
-        <key>Minute</key>
-        <integer>0</integer>
-    </dict>
+    <key>StartInterval</key>
+    <integer>900</integer>
     <key>StandardOutPath</key>
     <string>/Users/iteebz/.sesh/sync.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/iteebz/.sesh/sync.log</string>
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
 </dict>
 </plist>

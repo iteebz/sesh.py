@@ -7,14 +7,15 @@ from sesh import (
     distribution,
     export,
     health,
-    index,
     search,
+    selftest,
     show,
     stats,
     sync,
     tail,
     timeline,
     tokens,
+    verify,
 )
 
 
@@ -24,13 +25,14 @@ def main() -> None:
         distribution,
         export,
         health,
-        index,
         search,
+        selftest,
         show,
         stats,
         sync,
         tail,
         timeline,
         tokens,
+        verify,
     )
     fncli.run(["sesh", *sys.argv[1:]])

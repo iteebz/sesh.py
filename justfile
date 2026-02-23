@@ -3,6 +3,7 @@ default:
 
 install:
     @uv sync
+    @uv tool install --editable .
     @just hooks
     @just launchd
 
