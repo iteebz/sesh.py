@@ -2,9 +2,35 @@ import sys
 
 import fncli
 
-from sesh import analyze, export, health, search, show, stats, sync, timeline
+from sesh import (
+    analyze,
+    distribution,
+    export,
+    health,
+    index,
+    search,
+    show,
+    stats,
+    sync,
+    tail,
+    timeline,
+    tokens,
+)
 
 
 def main() -> None:
-    _ = analyze, export, health, search, show, stats, sync, timeline
+    _ = (
+        analyze,
+        distribution,
+        export,
+        health,
+        index,
+        search,
+        show,
+        stats,
+        sync,
+        tail,
+        timeline,
+        tokens,
+    )
     fncli.run(["sesh", *sys.argv[1:]])

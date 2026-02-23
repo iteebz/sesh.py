@@ -37,6 +37,7 @@ lint:
 
 ci: lint
     @uv run pytest tests --tb=short
+    @uv run sesh selftest
 
 test:
     @uv run pytest tests

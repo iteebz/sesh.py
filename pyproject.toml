@@ -10,6 +10,7 @@ authors = [{name = "Tyson Chan", email = "tyson.chan@proton.me"}]
 requires-python = ">=3.12"
 dependencies = [
     "fncli",
+    "atail",
 ]
 
 [dependency-groups]
@@ -93,6 +94,7 @@ ignore = [
 
 [tool.uv.sources]
 fncli = { git = "https://github.com/iteebz/fncli.git" }
+atail = { git = "https://github.com/iteebz/atail.git" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

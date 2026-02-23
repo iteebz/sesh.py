@@ -3,6 +3,11 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
+name = "atail"
+version = "0.1.0"
+source = { git = "https://github.com/iteebz/atail.git#9947ea74bea35399c667fa657b57971a239fe8e8" }
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -14,7 +19,7 @@ wheels = [
 [[package]]
 name = "fncli"
 version = "0.0.1"
-source = { git = "https://github.com/iteebz/fncli.git#b98d8beb34f864cea4c7bae62957423a8fdf8cee" }
+source = { git = "https://github.com/iteebz/fncli.git#9c709e076aa246cd8d6c60c9c214310666e44164" }
 
 [[package]]
 name = "iniconfig"
@@ -120,6 +125,7 @@ name = "sesh"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "atail" },
     { name = "fncli" },
 ]
 
@@ -131,7 +137,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fncli", git = "https://github.com/iteebz/fncli.git" }]
+requires-dist = [
+    { name = "atail", git = "https://github.com/iteebz/atail.git" },
+    { name = "fncli", git = "https://github.com/iteebz/fncli.git" },
+]
 
 [package.metadata.requires-dev]
 dev = [

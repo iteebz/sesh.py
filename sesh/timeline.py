@@ -9,8 +9,10 @@ echo = print
 
 
 @cli("sesh", description="activity timeline")
-def timeline(weeks: int = 12, provider: str | None = None):
+def timeline(weeks: int = 12, provider: str | None = None, real: bool = False):
     files = discover_sessions(provider_filter=provider)
+    if real:
+        files = [f for f in files if f.is_real]
 
     if not files:
         echo("No sessions found")
