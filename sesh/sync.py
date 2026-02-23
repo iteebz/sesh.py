@@ -136,8 +136,8 @@ def sync_sessions(dry_run: bool = False) -> dict[str, int]:
     }
 
 
-@cli("sesh", name="sync", description="sync sessions from native paths")
-def run(dry_run: bool = False):
+@cli("sesh", description="sync sessions from native paths")
+def sync(dry_run: bool = False):
     echo(f"Syncing to {SESSIONS_ROOT}")
     echo()
 

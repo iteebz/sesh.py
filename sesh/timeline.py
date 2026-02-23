@@ -8,8 +8,8 @@ from sesh.discover import discover_sessions
 echo = print
 
 
-@cli("sesh", name="timeline", description="activity timeline")
-def run(weeks: int = 12, provider: str | None = None):
+@cli("sesh", description="activity timeline")
+def timeline(weeks: int = 12, provider: str | None = None):
     files = discover_sessions(provider_filter=provider)
 
     if not files:

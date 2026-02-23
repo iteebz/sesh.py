@@ -90,8 +90,8 @@ def analyze_sessions(provider: str | None = None, limit: int | None = None) -> A
     return result
 
 
-@cli("sesh", name="analyze", description="analyze prompting patterns")
-def run(provider: str | None = None, limit: int | None = None):
+@cli("sesh", description="analyze prompting patterns")
+def analyze(provider: str | None = None, limit: int | None = None):
     echo("Analyzing sessions...")
     result = analyze_sessions(provider=provider, limit=limit)
 

@@ -82,8 +82,8 @@ def score() -> dict[str, Any]:
     }
 
 
-@cli("sesh", name="health", description="health score")
-def run() -> None:
+@cli("sesh", description="health score")
+def health() -> None:
     result = score()
     echo(f"health: {result['score']}/100 {'✓' if result['ok'] else '✗'}")
     for name, check in result["checks"].items():

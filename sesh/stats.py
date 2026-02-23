@@ -45,8 +45,8 @@ def estimate_cost(tokens: TokenUsage) -> float:
     )
 
 
-@cli("sesh", name="stats", description="session analytics", default=True)
-def run(
+@cli("sesh", description="session analytics", default=True)
+def stats(
     provider: str | None = None,
     tokens: bool = False,
     forks: bool = False,

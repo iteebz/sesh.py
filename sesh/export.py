@@ -80,8 +80,8 @@ def export_text(session: Session) -> str:
     return "\n".join(lines)
 
 
-@cli("sesh", name="export", description="export session to file")
-def run(session_id: str, format: str = "markdown", output: str | None = None):
+@cli("sesh", description="export session to file")
+def export(session_id: str, format: str = "markdown", output: str | None = None):
     sf = find_session(session_id)
     if not sf:
         echo(f"Session not found: {session_id}")

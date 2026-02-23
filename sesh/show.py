@@ -19,8 +19,8 @@ def truncate(text: str, max_len: int = 200) -> str:
     return text[:max_len] + "..."
 
 
-@cli("sesh", name="show", description="inspect a session")
-def run(session_id: str, raw: bool = False, events: bool = False):
+@cli("sesh", description="inspect a session")
+def show(session_id: str, raw: bool = False, events: bool = False):
     sf = find_session(session_id)
     if not sf:
         echo(f"Session not found: {session_id}")

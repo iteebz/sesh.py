@@ -63,8 +63,8 @@ def search_file(path: Path, pattern: re.Pattern[str], context: int = 0) -> list[
     return matches
 
 
-@cli("sesh", name="search", description="search sessions by content")
-def run(
+@cli("sesh", description="search sessions by content")
+def search(
     query: str,
     provider: str | None = None,
     limit: int = 20,
