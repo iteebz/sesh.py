@@ -9,6 +9,7 @@ from sesh import (
     health,
     search,
     show,
+    spawns,
     stats,
     sync,
     tail,
@@ -26,6 +27,7 @@ def main() -> None:
         health,
         search,
         show,
+        spawns,
         stats,
         sync,
         tail,
@@ -33,4 +35,4 @@ def main() -> None:
         tokens,
         verify,
     )
-    fncli.run(["sesh", *sys.argv[1:]])
+    fncli.run(["sesh", *(sys.argv[1:] or ["--help"])])
