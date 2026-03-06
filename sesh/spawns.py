@@ -4,8 +4,8 @@ Source of truth: space.db spawns table (spawn_id → session_id).
 File store: ~/.sesh/<provider>/ (synced from ~/.claude/projects/).
 
 The seed command looks up each DB spawn's session_id in sesh,
-copies the matching JSONL to ~/.sesh/spawns/<provider>/<spawn_id>.jsonl,
-producing files compatible with space's event pipeline.
+copies the matching JSONL to ~/.space/spawns/<provider>/<spawn_id>.jsonl,
+the canonical location space's event pipeline reads from.
 """
 
 import shutil
@@ -19,7 +19,7 @@ from sesh.discover import SESSIONS_ROOT
 from sesh.display import progress, progress_done
 
 SPACE_DB = Path("~/.space/space.db").expanduser()
-SEED_ROOT = SESSIONS_ROOT / "spawns"
+SEED_ROOT = Path("~/.space/spawns").expanduser()
 
 echo = print
 
