@@ -81,16 +81,15 @@ def gc(
                 except OSError:
                     pass
 
+    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     conn.close()
 
     echo()
     echo(f"  total    {total_garbage:>6,} sessions  {fmt_size(total_bytes):>8}")
     if source_matches:
         echo(f"  source   {source_matches:>6,} cleanable in ~/.claude/  {fmt_size(source_bytes):>8}")
-
-    real_count = 64789 - total_garbage  # rough
     echo()
-    echo(f"  {total_garbage / 64789 * 100:.0f}% of sessions are garbage")
+    echo(f"  {total_garbage / max(total_sessions, 1) * 100:.0f}% of {total_sessions:,} sessions are garbage")
 
     if ids and all_ids:
         echo()
