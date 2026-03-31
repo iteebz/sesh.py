@@ -295,16 +295,6 @@ def _index(copied: list[Path], force: bool = False) -> tuple[int, int]:
 
     reindexed = 0
     for i, (provider, jsonl, key) in enumerate(to_index):
-        if force:
-            st = jsonl.stat()
-            row = conn.execute(
-                "SELECT mtime, size FROM sessions WHERE key = ?", (key,)
-            ).fetchone()
-            if row and row["mtime"] == st.st_mtime and row["size"] == st.st_size:
-                if tty and n > 100:
-                    progress(n, i + 1, "index")
-                continue
-
         info = _index_file(jsonl)
         conn.execute(
             """INSERT OR REPLACE INTO sessions
