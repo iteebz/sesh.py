@@ -90,6 +90,7 @@ def discover_sessions(
     model_filter: str | None = None,
     limit: int | None = None,
     real_only: bool = False,
+    days: int | None = None,
 ) -> list[SessionFile]:
     conn = connect()
     clauses = []
@@ -103,6 +104,9 @@ def discover_sessions(
         params.append(f"%{model_filter}%")
     if real_only:
         clauses.append("has_assistant_turn = 1")
+    if days:
+        clauses.append("created_at > datetime('now', ?)")
+        params.append(f"-{days} days")
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     sql = f"SELECT * FROM sessions {where} ORDER BY mtime DESC"

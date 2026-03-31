@@ -20,6 +20,7 @@ def list_(
         model_filter=model,
         limit=n,
         real_only=real,
+        days=days,
     )
 
     if not sessions:
