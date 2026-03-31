@@ -1,20 +1,8 @@
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TypedDict
 
-
-class IndexEntry(TypedDict):
-    mtime: float
-    size: int
-    created_at: str | None
-    has_assistant_turn: bool
-    line_count: int
-
-
-SESSIONS_ROOT = Path("~/.sesh").expanduser()
-INDEX_PATH = SESSIONS_ROOT / "index.json"
+from sesh.db import SESSIONS_ROOT, connect
 
 
 @dataclass
@@ -24,13 +12,21 @@ class SessionFile:
     session_id: str
     _line_count: int | None = field(default=None, repr=False, compare=False)
     _has_assistant_turn: bool | None = field(default=None, repr=False, compare=False)
+    _model: str | None = field(default=None, repr=False, compare=False)
+    _mtime: float | None = field(default=None, repr=False, compare=False)
+    _size: int | None = field(default=None, repr=False, compare=False)
+    _created_at_str: str | None = field(default=None, repr=False, compare=False)
 
     @property
     def size(self) -> int:
+        if self._size is not None:
+            return self._size
         return self.path.stat().st_size if self.path.exists() else 0
 
     @property
     def mtime(self) -> float:
+        if self._mtime is not None:
+            return self._mtime
         return self.path.stat().st_mtime if self.path.exists() else 0
 
     @property
@@ -50,21 +46,11 @@ class SessionFile:
     def has_assistant_turn(self) -> bool:
         if self._has_assistant_turn is not None:
             return self._has_assistant_turn
-        try:
-            with self.path.open() as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    raw = json.loads(line)
-                    if raw.get("type") == "assistant" or raw.get("role") == "assistant":
-                        self._has_assistant_turn = True
-                        return True
-            self._has_assistant_turn = False
-            return False
-        except Exception:
-            self._has_assistant_turn = False
-            return False
+        return False
+
+    @property
+    def model(self) -> str | None:
+        return self._model
 
     @property
     def is_real(self) -> bool:
@@ -72,33 +58,16 @@ class SessionFile:
 
     @property
     def created_at(self) -> datetime:
-        try:
-            with self.path.open() as f:
-                for _ in range(5):
-                    line = f.readline()
-                    if not line:
-                        break
-                    raw = json.loads(line)
-                    ts = raw.get("timestamp")
-                    if ts:
-                        return datetime.fromisoformat(ts).astimezone()
-        except Exception:  # noqa: S110
-            pass
+        if self._created_at_str:
+            try:
+                return datetime.fromisoformat(self._created_at_str).astimezone()
+            except Exception:
+                pass
         return datetime.fromtimestamp(self.mtime).astimezone()
 
     @property
     def created_at_ts(self) -> float:
         return self.created_at.timestamp()
-
-
-def _load_index() -> dict[str, IndexEntry] | None:
-    if not INDEX_PATH.exists():
-        return None
-    try:
-        with INDEX_PATH.open() as f:
-            return json.load(f)
-    except Exception:
-        return None
 
 
 def _iter_provider_files() -> list[tuple[str, Path]]:
@@ -118,24 +87,44 @@ def _session_key(provider: str, jsonl: Path) -> str:
     return f"{provider}/{rel.with_suffix('').as_posix()}"
 
 
-def discover_sessions(provider_filter: str | None = None) -> list[SessionFile]:
-    sessions: list[SessionFile] = []
+def _sf_from_row(row) -> SessionFile:
+    return SessionFile(
+        path=Path(row["path"]),
+        provider=row["provider"],
+        session_id=row["session_id"],
+        _line_count=row["line_count"],
+        _has_assistant_turn=bool(row["has_assistant_turn"]),
+        _model=row["model"],
+        _mtime=row["mtime"],
+        _size=row["size"],
+        _created_at_str=row["created_at"],
+    )
 
-    if not SESSIONS_ROOT.exists():
-        return sessions
 
-    index = _load_index()
+def discover_sessions(
+    provider_filter: str | None = None,
+    model_filter: str | None = None,
+    limit: int | None = None,
+    real_only: bool = False,
+) -> list[SessionFile]:
+    conn = connect()
+    clauses = []
+    params: list[object] = []
 
-    for provider, jsonl in _iter_provider_files():
-        if provider_filter and provider != provider_filter:
-            continue
-        key = _session_key(provider, jsonl)
-        sf = SessionFile(path=jsonl, provider=provider, session_id=jsonl.stem)
-        if index and key in index:
-            entry = index[key]
-            sf._line_count = entry.get("line_count")
-            sf._has_assistant_turn = entry.get("has_assistant_turn")
-        sessions.append(sf)
+    if provider_filter:
+        clauses.append("provider = ?")
+        params.append(provider_filter)
+    if model_filter:
+        clauses.append("model LIKE ?")
+        params.append(f"%{model_filter}%")
+    if real_only:
+        clauses.append("has_assistant_turn = 1")
 
-    sessions.sort(key=lambda s: s.mtime, reverse=True)
-    return sessions
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    sql = f"SELECT * FROM sessions {where} ORDER BY mtime DESC"
+    if limit:
+        sql += f" LIMIT {limit}"
+
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return [_sf_from_row(r) for r in rows]

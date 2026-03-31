@@ -15,7 +15,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from sesh.discover import SESSIONS_ROOT
+from sesh.db import SESSIONS_ROOT
 from sesh.display import progress, progress_done
 
 SPACE_DB = Path("~/.space/space.db").expanduser()

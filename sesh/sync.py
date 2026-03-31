@@ -6,7 +6,8 @@ from pathlib import Path
 
 from fncli import cli
 
-from sesh.discover import INDEX_PATH, SESSIONS_ROOT, IndexEntry, _iter_provider_files, _session_key
+from sesh.db import SESSIONS_ROOT, connect
+from sesh.discover import _iter_provider_files, _session_key
 from sesh.display import progress, progress_done
 
 echo = print
@@ -42,10 +43,11 @@ def _is_unchanged(src: Path, dest: Path) -> bool:
         return False
 
 
-def _index_file(jsonl: Path) -> IndexEntry:
+def _index_file(jsonl: Path) -> dict:
     created_at = None
     has_assistant = False
     line_count = 0
+    model = None
     try:
         with jsonl.open() as f:
             for line in f:
@@ -62,6 +64,8 @@ def _index_file(jsonl: Path) -> IndexEntry:
                     raw.get("type") == "assistant" or raw.get("role") == "assistant"
                 ):
                     has_assistant = True
+                if model is None:
+                    model = raw.get("model") or raw.get("message", {}).get("model")
     except Exception:  # noqa: S110
         pass
     stat = jsonl.stat()
@@ -71,6 +75,7 @@ def _index_file(jsonl: Path) -> IndexEntry:
         "created_at": created_at,
         "has_assistant_turn": has_assistant,
         "line_count": line_count,
+        "model": model,
     }
 
 
@@ -136,18 +141,8 @@ def _collect_gemini() -> list[tuple[Path, Path]]:
     return files
 
 
-def _load_existing_index() -> dict[str, IndexEntry]:
-    if not INDEX_PATH.exists():
-        return {}
-    try:
-        with INDEX_PATH.open() as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
 @cli("sesh", description="sync sessions from native paths")
-def sync(dry_run: bool = False):
+def sync(dry_run: bool = False, force: bool = False):
     echo(f"Syncing to {SESSIONS_ROOT}")
     echo()
 
@@ -158,7 +153,6 @@ def sync(dry_run: bool = False):
     tty = sys.stdout.isatty()
     stats = {"synced": 0, "skipped": 0, "deferred": 0, "failed": 0}
 
-    existing_index = _load_existing_index()
     new_synced: list[Path] = []
 
     def _tick():
@@ -238,25 +232,66 @@ def sync(dry_run: bool = False):
     if dry_run:
         return
 
-    idx = dict(existing_index)
-    all_files = _iter_provider_files()
-    current_keys = {_session_key(p, f) for p, f in all_files}
-    new_synced_set = set(new_synced)
+    # Index into sqlite — only newly synced files unless --force
+    conn = connect()
 
-    for old_key in list(idx.keys()):
-        if old_key not in current_keys:
-            del idx[old_key]
+    if force:
+        # Full reindex: scan all files
+        all_files = _iter_provider_files()
+        current_keys = {_session_key(p, f) for p, f in all_files}
+        existing_keys = {r[0] for r in conn.execute("SELECT key FROM sessions").fetchall()}
+        removed = existing_keys - current_keys
+        if removed:
+            conn.executemany("DELETE FROM sessions WHERE key = ?", [(k,) for k in removed])
+        to_index = [(p, f, _session_key(p, f)) for p, f in all_files]
+    elif new_synced:
+        # Incremental: only index what we just copied
+        to_index = []
+        for dest in new_synced:
+            provider = dest.relative_to(SESSIONS_ROOT).parts[0]
+            key = _session_key(provider, dest)
+            to_index.append((provider, dest, key))
+    else:
+        total_rows = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        conn.close()
+        echo(f"Indexed: {total_rows:,} sessions (0 updated)")
+        return
 
     reindexed = 0
-    for provider, jsonl in all_files:
-        key = _session_key(provider, jsonl)
-        prev = idx.get(key)
-        if prev and jsonl not in new_synced_set:
+    for provider, jsonl, key in to_index:
+        if not force:
+            # Always index new synced files
+            pass
+        else:
             st = jsonl.stat()
-            if prev["mtime"] == st.st_mtime and prev["size"] == st.st_size:
+            row = conn.execute(
+                "SELECT mtime, size FROM sessions WHERE key = ?", (key,)
+            ).fetchone()
+            if row and row["mtime"] == st.st_mtime and row["size"] == st.st_size:
                 continue
-        idx[key] = _index_file(jsonl)
+
+        info = _index_file(jsonl)
+        conn.execute(
+            """INSERT OR REPLACE INTO sessions
+               (key, provider, session_id, path, mtime, size, created_at, has_assistant_turn, line_count, model)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                key,
+                provider,
+                jsonl.stem,
+                str(jsonl),
+                info["mtime"],
+                info["size"],
+                info["created_at"],
+                int(info["has_assistant_turn"]),
+                info["line_count"],
+                info["model"],
+            ),
+        )
         reindexed += 1
 
-    INDEX_PATH.write_text(json.dumps(idx))
-    echo(f"Indexed: {len(idx):,} sessions ({reindexed} updated)")
+    conn.commit()
+    total_rows = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+    conn.close()
+
+    echo(f"Indexed: {total_rows:,} sessions ({reindexed} updated)")
