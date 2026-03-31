@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from fncli import cli
 
 from sesh.db import DB_PATH, SESSIONS_ROOT, connect
+from sesh.fmt import ago, size as fmt_size
 
 echo = print
 
@@ -21,12 +22,13 @@ def _daemon_running() -> bool:
         return False
 
 
-def _last_sync() -> str | None:
+def _last_sync() -> tuple[str, float] | None:
     log = SESSIONS_ROOT / "sync.log"
     if not log.exists():
         return None
     try:
-        return datetime.fromtimestamp(log.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        mtime = log.stat().st_mtime
+        return ago(mtime), mtime
     except Exception:
         return None
 
@@ -34,19 +36,20 @@ def _last_sync() -> str | None:
 def _db_size() -> str:
     if not DB_PATH.exists():
         return "missing"
-    size = DB_PATH.stat().st_size
-    if size < 1024 * 1024:
-        return f"{size / 1024:.0f}K"
-    return f"{size / (1024 * 1024):.1f}M"
+    return fmt_size(DB_PATH.stat().st_size)
 
 
 @cli("sesh", description="daemon health and sync status")
 def status():
     running = _daemon_running()
-    last = _last_sync()
+    sync_info = _last_sync()
 
     echo(f"Daemon:    {'running' if running else 'NOT RUNNING'}")
-    echo(f"Last sync: {last or 'never'}")
+    if sync_info:
+        rel, _ = sync_info
+        echo(f"Last sync: {rel}")
+    else:
+        echo(f"Last sync: never")
     echo(f"DB:        {DB_PATH} ({_db_size()})")
 
     conn = connect()

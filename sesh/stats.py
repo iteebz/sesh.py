@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from fncli import cli
 
 from sesh.discover import SessionFile, discover_sessions
+from sesh.fmt import size as fmt_size, tokens as fmt_tokens
 from sesh.parse import TokenUsage, parse_session
 
 echo = print
@@ -16,24 +17,6 @@ CLAUDE_PRICING = {
 }
 
 
-def format_tokens(n: int) -> str:
-    if n < 1000:
-        return str(n)
-    if n < 1_000_000:
-        return f"{n / 1000:.1f}K"
-    if n < 1_000_000_000:
-        return f"{n / 1_000_000:.1f}M"
-    return f"{n / 1_000_000_000:.1f}B"
-
-
-def format_size(size: int) -> str:
-    if size < 1024:
-        return f"{size}B"
-    if size < 1024 * 1024:
-        return f"{size / 1024:.1f}K"
-    if size < 1024 * 1024 * 1024:
-        return f"{size / (1024 * 1024):.1f}M"
-    return f"{size / (1024 * 1024 * 1024):.1f}G"
 
 
 def estimate_cost(tokens: TokenUsage) -> float:
@@ -104,7 +87,7 @@ def stats(
     this_month = sum(1 for f in files if datetime.fromtimestamp(f.mtime) > now - timedelta(days=30))
 
     echo(f"Sessions: {unique_sessions:,} unique ({total_files:,} files, {fork_count} forks)")
-    echo(f"Size: {format_size(total_size)}")
+    echo(f"Size: {fmt_size(total_size)}")
 
     if tokens:
         totals = TokenUsage(
@@ -114,14 +97,14 @@ def stats(
             cache_write=sum(t.cache_write for t in provider_tokens.values()),
         )
         cost = estimate_cost(totals)
-        echo(f"Tokens: {format_tokens(totals.input)} in, {format_tokens(totals.output)} out")
+        echo(f"Tokens: {fmt_tokens(totals.input)} in, {fmt_tokens(totals.output)} out")
         echo(f"Cost: ${cost:,.2f} (Claude pricing)")
 
     echo()
     echo("By provider:")
     for prov in sorted(provider_counts.keys()):
         unique_for_prov = sum(1 for _, fs in session_ids.items() if fs[0].provider == prov)
-        size = format_size(provider_sizes[prov])
+        size = fmt_size(provider_sizes[prov])
         echo(f"  {prov:<10} {unique_for_prov:>6,} sessions    {size:>8}")
 
     echo()

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from fncli import cli
 
 from sesh.discover import discover_sessions
-from sesh.stats import format_size
+from sesh.fmt import size as format_size
 
 echo = print
 

@@ -7,24 +7,16 @@ Categories:
   orphan   — file on disk not in index
 """
 
-import os
 from pathlib import Path
 
 from fncli import cli
 
 from sesh.db import SESSIONS_ROOT, connect
+from sesh.fmt import size as fmt_size
 
 echo = print
 
 CLAUDE_PROJECTS = Path("~/.claude/projects").expanduser()
-
-
-def _format_size(n: int) -> str:
-    if n < 1024:
-        return f"{n}B"
-    if n < 1024 * 1024:
-        return f"{n / 1024:.1f}K"
-    return f"{n / (1024 * 1024):.1f}M"
 
 
 @cli("sesh", description="identify garbage sessions (never deletes)")
@@ -64,7 +56,7 @@ def gc(
         total_garbage += count
         total_bytes += size
 
-        echo(f"  {cat:<8} {count:>6,} sessions  {_format_size(size):>8}")
+        echo(f"  {cat:<8} {count:>6,} sessions  {fmt_size(size):>8}")
 
         if ids:
             for r in rows[:limit]:
@@ -92,9 +84,9 @@ def gc(
     conn.close()
 
     echo()
-    echo(f"  total    {total_garbage:>6,} sessions  {_format_size(total_bytes):>8}")
+    echo(f"  total    {total_garbage:>6,} sessions  {fmt_size(total_bytes):>8}")
     if source_matches:
-        echo(f"  source   {source_matches:>6,} cleanable in ~/.claude/  {_format_size(source_bytes):>8}")
+        echo(f"  source   {source_matches:>6,} cleanable in ~/.claude/  {fmt_size(source_bytes):>8}")
 
     real_count = 64789 - total_garbage  # rough
     echo()
@@ -104,7 +96,7 @@ def gc(
         echo()
         echo(f"IDs ({min(len(all_ids), limit)} shown):")
         for cat, sid, prov, size in all_ids[:limit]:
-            echo(f"  [{cat:<5}] {prov}/{sid}  {_format_size(size)}")
+            echo(f"  [{cat:<5}] {prov}/{sid}  {fmt_size(size)}")
 
     if not ids:
         echo()
