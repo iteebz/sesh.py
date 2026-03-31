@@ -122,6 +122,12 @@ def trend(
     peak = max(values)
     avg = total / len(values)
 
+    # Clip outliers at p95 for chart rendering so spikes don't flatten everything
+    sorted_vals = sorted(values)
+    p95 = sorted_vals[int(len(sorted_vals) * 0.95)]
+    chart_values = [min(v, p95) for v in values] if peak > p95 * 2 else values
+    chart_ceiling = p95 if peak > p95 * 2 else peak
+
     tty = sys.stdout.isatty()
     dim = DIM if tty else ""
     bold = BOLD if tty else ""
@@ -134,11 +140,11 @@ def trend(
     echo(f"  {bold}{label}{reset}  {dim}{len(days_list)}d  avg {avg:.0f}/day  peak {peak:.0f}{reset}")
     echo()
 
-    chart = _braille(values)
+    chart = _braille(chart_values)
     for i, row in enumerate(chart):
         label = ""
         if i == 0:
-            label = f" {dim}{peak:.0f}{reset}"
+            label = f" {dim}{chart_ceiling:.0f}{reset}"
         elif i == len(chart) - 1:
             label = f" {dim}{min(values):.0f}{reset}"
         echo(f"    {row}{label}")
