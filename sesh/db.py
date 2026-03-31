@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     cache_read INTEGER NOT NULL DEFAULT 0,
     cache_create INTEGER NOT NULL DEFAULT 0,
     tool_calls INTEGER NOT NULL DEFAULT 0,
-    cost_usd REAL NOT NULL DEFAULT 0
+    cost_usd REAL NOT NULL DEFAULT 0,
+    parent_session_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_provider ON sessions(provider);
 CREATE INDEX IF NOT EXISTS idx_sessions_model ON sessions(model);
@@ -38,6 +39,10 @@ MIGRATIONS = [
         "ALTER TABLE sessions ADD COLUMN cache_create INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE sessions ADD COLUMN tool_calls INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE sessions ADD COLUMN cost_usd REAL NOT NULL DEFAULT 0",
+    ],
+    # v2 → v3: lineage tracking
+    [
+        "ALTER TABLE sessions ADD COLUMN parent_session_id TEXT",
     ],
 ]
 

@@ -71,6 +71,8 @@ def _index_file(jsonl: Path) -> dict:
     cache_read = 0
     cache_create = 0
     tool_calls = 0
+    parent_session_id = None
+    file_stem = jsonl.stem
     try:
         with jsonl.open() as f:
             for line in f:
@@ -83,13 +85,19 @@ def _index_file(jsonl: Path) -> dict:
                     ts = raw.get("timestamp")
                     if ts:
                         created_at = ts
+                if parent_session_id is None:
+                    sid = raw.get("sessionId")
+                    if sid and sid != file_stem:
+                        parent_session_id = sid
                 msg_type = raw.get("type", "")
                 if not has_assistant and (msg_type == "assistant" or raw.get("role") == "assistant"):
                     has_assistant = True
                 msg = raw.get("message", {})
                 if isinstance(msg, dict):
                     if model is None:
-                        model = raw.get("model") or msg.get("model")
+                        m = raw.get("model") or msg.get("model")
+                        if m and not m.startswith("<"):
+                            model = m
                     usage = msg.get("usage")
                     if usage:
                         input_tokens += usage.get("input_tokens", 0)
@@ -115,6 +123,7 @@ def _index_file(jsonl: Path) -> dict:
         "cache_create": cache_create,
         "tool_calls": tool_calls,
         "cost_usd": _estimate_cost(model, input_tokens, output_tokens, cache_read, cache_create),
+        "parent_session_id": parent_session_id,
     }
 
 
@@ -301,8 +310,9 @@ def _index(copied: list[Path], force: bool = False) -> tuple[int, int]:
             """INSERT OR REPLACE INTO sessions
                (key, provider, session_id, path, mtime, size, created_at,
                 has_assistant_turn, line_count, model,
-                input_tokens, output_tokens, cache_read, cache_create, tool_calls, cost_usd)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                input_tokens, output_tokens, cache_read, cache_create, tool_calls, cost_usd,
+                parent_session_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 key,
                 provider,
@@ -320,6 +330,7 @@ def _index(copied: list[Path], force: bool = False) -> tuple[int, int]:
                 info["cache_create"],
                 info["tool_calls"],
                 info["cost_usd"],
+                info["parent_session_id"],
             ),
         )
         reindexed += 1
