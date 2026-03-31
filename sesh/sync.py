@@ -7,7 +7,6 @@ from pathlib import Path
 from fncli import cli
 
 from sesh.db import SESSIONS_ROOT, connect
-from sesh.discover import _iter_provider_files, _session_key
 from sesh.display import progress, progress_done
 
 echo = print
@@ -41,6 +40,23 @@ def _is_unchanged(src: Path, dest: Path) -> bool:
         return ss.st_size == ds.st_size and ss.st_mtime <= ds.st_mtime
     except OSError:
         return False
+
+
+def _iter_provider_files() -> list[tuple[str, Path]]:
+    if not SESSIONS_ROOT.exists():
+        return []
+    results: list[tuple[str, Path]] = []
+    for provider_dir in SESSIONS_ROOT.iterdir():
+        if not provider_dir.is_dir() or provider_dir.name.startswith("."):
+            continue
+        provider = provider_dir.name
+        results.extend((provider, jsonl) for jsonl in provider_dir.rglob("*.jsonl"))
+    return results
+
+
+def _session_key(provider: str, jsonl: Path) -> str:
+    rel = jsonl.relative_to(SESSIONS_ROOT / provider)
+    return f"{provider}/{rel.with_suffix('').as_posix()}"
 
 
 # Pricing per million tokens (API rates)

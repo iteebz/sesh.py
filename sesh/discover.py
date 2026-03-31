@@ -70,22 +70,6 @@ class SessionFile:
         return self.created_at.timestamp()
 
 
-def _iter_provider_files() -> list[tuple[str, Path]]:
-    if not SESSIONS_ROOT.exists():
-        return []
-    results: list[tuple[str, Path]] = []
-    for provider_dir in SESSIONS_ROOT.iterdir():
-        if not provider_dir.is_dir() or provider_dir.name.startswith("."):
-            continue
-        provider = provider_dir.name
-        results.extend((provider, jsonl) for jsonl in provider_dir.rglob("*.jsonl"))
-    return results
-
-
-def _session_key(provider: str, jsonl: Path) -> str:
-    rel = jsonl.relative_to(SESSIONS_ROOT / provider)
-    return f"{provider}/{rel.with_suffix('').as_posix()}"
-
 
 def _sf_from_row(row) -> SessionFile:
     return SessionFile(

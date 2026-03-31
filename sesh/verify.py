@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from sesh.discover import _iter_provider_files, _session_key
+from sesh.sync import _iter_provider_files, _session_key
 
 echo = print
 
