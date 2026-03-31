@@ -1,11 +1,8 @@
-from collections import Counter, defaultdict
-from datetime import datetime, timedelta
-
 from fncli import cli
 
-from sesh.discover import SessionFile, discover_sessions
+from sesh.db import connect
 from sesh.fmt import size as fmt_size, tokens as fmt_tokens
-from sesh.parse import TokenUsage, parse_session
+from sesh.parse import TokenUsage
 
 echo = print
 
@@ -15,8 +12,6 @@ CLAUDE_PRICING = {
     "cache_read": 0.30 / 1_000_000,
     "cache_write": 3.75 / 1_000_000,
 }
-
-
 
 
 def estimate_cost(tokens: TokenUsage) -> float:
@@ -37,95 +32,84 @@ def stats(
     by_week: bool = False,
     by_month: bool = False,
 ):
-    files = discover_sessions(provider_filter=provider)
+    conn = connect()
 
-    if not files:
+    prov_clause = "WHERE provider = ?" if provider else ""
+    prov_params: tuple = (provider,) if provider else ()
+
+    total = conn.execute(f"SELECT COUNT(*) FROM sessions {prov_clause}", prov_params).fetchone()[0]
+    if not total:
         echo("No sessions found")
+        conn.close()
         return
 
-    session_ids: dict[str, list[SessionFile]] = defaultdict(list)
-    provider_counts: Counter[str] = Counter()
-    provider_sizes: Counter[str] = Counter()
-    provider_tokens: dict[str, TokenUsage] = defaultdict(TokenUsage)
-    time_buckets: Counter[str] = Counter()
+    total_size = conn.execute(f"SELECT SUM(size) FROM sessions {prov_clause}", prov_params).fetchone()[0] or 0
+    fork_count = conn.execute(
+        f"SELECT COUNT(*) FROM sessions WHERE parent_session_id IS NOT NULL {('AND provider = ?' if provider else '')}",
+        prov_params,
+    ).fetchone()[0]
 
-    total_size = 0
-    now = datetime.now()
-
-    for f in files:
-        session = parse_session(f.path, f.provider)
-        session_ids[session.session_id].append(f)
-
-        provider_counts[f.provider] += 1
-        provider_sizes[f.provider] += f.size
-        total_size += f.size
-
-        if tokens:
-            pt = provider_tokens[f.provider]
-            pt.input += session.tokens.input
-            pt.output += session.tokens.output
-            pt.cache_read += session.tokens.cache_read
-            pt.cache_write += session.tokens.cache_write
-
-        if by_day or by_week or by_month:
-            dt = datetime.fromtimestamp(f.mtime)
-            if by_day:
-                bucket = dt.strftime("%Y-%m-%d")
-            elif by_week:
-                bucket = dt.strftime("%Y-W%W")
-            else:
-                bucket = dt.strftime("%Y-%m")
-            time_buckets[bucket] += 1
-
-    unique_sessions = len(session_ids)
-    total_files = len(files)
-    forked_sessions = [(sid, fs) for sid, fs in session_ids.items() if len(fs) > 1]
-    fork_count = len(forked_sessions)
-
-    today = sum(1 for f in files if datetime.fromtimestamp(f.mtime).date() == now.date())
-    this_week = sum(1 for f in files if datetime.fromtimestamp(f.mtime) > now - timedelta(days=7))
-    this_month = sum(1 for f in files if datetime.fromtimestamp(f.mtime) > now - timedelta(days=30))
-
-    echo(f"Sessions: {unique_sessions:,} unique ({total_files:,} files, {fork_count} forks)")
+    echo(f"Sessions: {total:,} ({fork_count} forks)")
     echo(f"Size: {fmt_size(total_size)}")
 
     if tokens:
-        totals = TokenUsage(
-            input=sum(t.input for t in provider_tokens.values()),
-            output=sum(t.output for t in provider_tokens.values()),
-            cache_read=sum(t.cache_read for t in provider_tokens.values()),
-            cache_write=sum(t.cache_write for t in provider_tokens.values()),
-        )
-        cost = estimate_cost(totals)
-        echo(f"Tokens: {fmt_tokens(totals.input)} in, {fmt_tokens(totals.output)} out")
-        echo(f"Cost: ${cost:,.2f} (Claude pricing)")
+        row = conn.execute(
+            f"SELECT SUM(input_tokens), SUM(output_tokens), SUM(cache_read), SUM(cache_create), SUM(cost_usd) FROM sessions {prov_clause}",
+            prov_params,
+        ).fetchone()
+        echo(f"Tokens: {fmt_tokens(row[0] or 0)} in, {fmt_tokens(row[1] or 0)} out")
+        echo(f"Cost: ${row[4] or 0:,.2f}")
 
     echo()
     echo("By provider:")
-    for prov in sorted(provider_counts.keys()):
-        unique_for_prov = sum(1 for _, fs in session_ids.items() if fs[0].provider == prov)
-        size = fmt_size(provider_sizes[prov])
-        echo(f"  {prov:<10} {unique_for_prov:>6,} sessions    {size:>8}")
+    for r in conn.execute(
+        f"SELECT provider, COUNT(*) as cnt, SUM(size) as sz FROM sessions {prov_clause} GROUP BY provider ORDER BY cnt DESC",
+        prov_params,
+    ).fetchall():
+        echo(f"  {r['provider']:<10} {r['cnt']:>6,} sessions    {fmt_size(r['sz'] or 0):>8}")
 
     echo()
     echo("Recent activity:")
+    today = conn.execute(
+        f"SELECT COUNT(*) FROM sessions WHERE date(created_at) = date('now') {('AND provider = ?' if provider else '')}",
+        prov_params,
+    ).fetchone()[0]
+    week = conn.execute(
+        f"SELECT COUNT(*) FROM sessions WHERE created_at > datetime('now', '-7 days') {('AND provider = ?' if provider else '')}",
+        prov_params,
+    ).fetchone()[0]
+    month = conn.execute(
+        f"SELECT COUNT(*) FROM sessions WHERE created_at > datetime('now', '-30 days') {('AND provider = ?' if provider else '')}",
+        prov_params,
+    ).fetchone()[0]
     echo(f"  Today:      {today:>5} sessions")
-    echo(f"  This week:  {this_week:>5} sessions")
-    echo(f"  This month: {this_month:>5} sessions")
+    echo(f"  This week:  {week:>5} sessions")
+    echo(f"  This month: {month:>5} sessions")
 
     if by_day or by_week or by_month:
+        if by_day:
+            fmt, label = "%Y-%m-%d", "day"
+        elif by_week:
+            fmt, label = "%Y-W%W", "week"
+        else:
+            fmt, label = "%Y-%m", "month"
         echo()
-        label = "day" if by_day else ("week" if by_week else "month")
         echo(f"By {label}:")
-        for bucket in sorted(time_buckets.keys(), reverse=True)[:20]:
-            echo(f"  {bucket}: {time_buckets[bucket]:>5}")
+        rows = conn.execute(
+            f"SELECT strftime('{fmt}', created_at) as bucket, COUNT(*) as cnt FROM sessions WHERE created_at IS NOT NULL {('AND provider = ?' if provider else '')} GROUP BY bucket ORDER BY bucket DESC LIMIT 20",
+            prov_params,
+        ).fetchall()
+        for r in rows:
+            echo(f"  {r['bucket']}: {r['cnt']:>5}")
 
     if forks:
         echo()
+        rows = conn.execute(
+            f"SELECT parent_session_id, COUNT(*) as cnt FROM sessions WHERE parent_session_id IS NOT NULL {('AND provider = ?' if provider else '')} GROUP BY parent_session_id ORDER BY cnt DESC LIMIT 15",
+            prov_params,
+        ).fetchall()
         echo(f"Forked sessions ({fork_count}):")
-        for sid, fs in sorted(forked_sessions, key=lambda x: -len(x[1]))[:15]:
-            echo(f"  {sid[:36]}  ({len(fs)} files)")
-            for sf in fs[:3]:
-                echo(f"    └─ {sf.path.name[:50]}")
-            if len(fs) > 3:
-                echo(f"    ... and {len(fs) - 3} more")
+        for r in rows:
+            echo(f"  {r['parent_session_id'][:36]}  ({r['cnt']} forks)")
+
+    conn.close()
