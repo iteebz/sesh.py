@@ -13,10 +13,12 @@ from sesh import (
     show,
     spawns,
     stats,
+    status,
     sync,
     tail,
     timeline,
     tokens,
+    trend,
     verify,
 )
 
@@ -33,10 +35,12 @@ def main() -> None:
         show,
         spawns,
         stats,
+        status,
         sync,
         tail,
         timeline,
         tokens,
+        trend,
         verify,
     )
     fncli.run(["sesh", *(sys.argv[1:] or ["--help"])])

@@ -43,11 +43,34 @@ def _is_unchanged(src: Path, dest: Path) -> bool:
         return False
 
 
+# Pricing per million tokens (API rates)
+_PRICING = {
+    "opus": (15.0, 75.0, 1.50, 18.75),
+    "sonnet": (3.0, 15.0, 0.30, 3.75),
+    "haiku": (0.80, 4.0, 0.08, 1.0),
+}
+
+
+def _estimate_cost(model: str | None, inp: int, out: int, cr: int, cc: int) -> float:
+    if not model:
+        return 0.0
+    m = model.lower()
+    for key, (pi, po, pcr, pcc) in _PRICING.items():
+        if key in m:
+            return (inp * pi + out * po + cr * pcr + cc * pcc) / 1_000_000
+    return 0.0
+
+
 def _index_file(jsonl: Path) -> dict:
     created_at = None
     has_assistant = False
     line_count = 0
     model = None
+    input_tokens = 0
+    output_tokens = 0
+    cache_read = 0
+    cache_create = 0
+    tool_calls = 0
     try:
         with jsonl.open() as f:
             for line in f:
@@ -60,12 +83,22 @@ def _index_file(jsonl: Path) -> dict:
                     ts = raw.get("timestamp")
                     if ts:
                         created_at = ts
-                if not has_assistant and (
-                    raw.get("type") == "assistant" or raw.get("role") == "assistant"
-                ):
+                msg_type = raw.get("type", "")
+                if not has_assistant and (msg_type == "assistant" or raw.get("role") == "assistant"):
                     has_assistant = True
-                if model is None:
-                    model = raw.get("model") or raw.get("message", {}).get("model")
+                msg = raw.get("message", {})
+                if isinstance(msg, dict):
+                    if model is None:
+                        model = raw.get("model") or msg.get("model")
+                    usage = msg.get("usage")
+                    if usage:
+                        input_tokens += usage.get("input_tokens", 0)
+                        output_tokens += usage.get("output_tokens", 0)
+                        cache_read += usage.get("cache_read_input_tokens", 0)
+                        cache_create += usage.get("cache_creation_input_tokens", 0)
+                    for block in msg.get("content", []):
+                        if isinstance(block, dict) and block.get("type") == "tool_use":
+                            tool_calls += 1
     except Exception:  # noqa: S110
         pass
     stat = jsonl.stat()
@@ -76,6 +109,12 @@ def _index_file(jsonl: Path) -> dict:
         "has_assistant_turn": has_assistant,
         "line_count": line_count,
         "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_read": cache_read,
+        "cache_create": cache_create,
+        "tool_calls": tool_calls,
+        "cost_usd": _estimate_cost(model, input_tokens, output_tokens, cache_read, cache_create),
     }
 
 
@@ -141,51 +180,45 @@ def _collect_gemini() -> list[tuple[Path, Path]]:
     return files
 
 
-@cli("sesh", description="sync sessions from native paths")
-def sync(dry_run: bool = False, force: bool = False):
-    echo(f"Syncing to {SESSIONS_ROOT}")
-    echo()
-
+def _copy(dry_run: bool = False) -> tuple[list[Path], dict[str, int]]:
+    """Phase 1: copy session files from native paths into ~/.sesh/."""
     jsonl_files = _collect_jsonl()
     gemini_files = _collect_gemini()
     total = len(jsonl_files) + len(gemini_files)
     done = 0
     tty = sys.stdout.isatty()
-    stats = {"synced": 0, "skipped": 0, "deferred": 0, "failed": 0}
-
-    new_synced: list[Path] = []
+    counts = {"copied": 0, "skipped": 0, "deferred": 0, "failed": 0}
+    copied: list[Path] = []
 
     def _tick():
         nonlocal done
         done += 1
         if tty and total:
-            progress(total, done, "sync")
+            progress(total, done, "copy")
 
     if tty and total:
-        progress(total, 0, "sync")
+        progress(total, 0, "copy")
 
     for jsonl, dest in jsonl_files:
         if _is_unchanged(jsonl, dest):
-            stats["skipped"] += 1
+            counts["skipped"] += 1
             _tick()
             continue
         if _is_active(jsonl):
-            stats["deferred"] += 1
+            counts["deferred"] += 1
             _tick()
             continue
         if dry_run:
-            echo(f"[dry-run] {jsonl} -> {dest}")
-            stats["synced"] += 1
+            counts["copied"] += 1
             _tick()
             continue
         try:
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(jsonl, dest)
-            stats["synced"] += 1
-            new_synced.append(dest)
-        except Exception as e:
-            echo(f"Failed to sync {jsonl}: {e}")
-            stats["failed"] += 1
+            counts["copied"] += 1
+            copied.append(dest)
+        except Exception:
+            counts["failed"] += 1
         _tick()
 
     dest_dir = SESSIONS_ROOT / "gemini"
@@ -194,49 +227,40 @@ def sync(dry_run: bool = False, force: bool = False):
 
     for session_json, dest in gemini_files:
         if dest.exists():
-            stats["skipped"] += 1
+            counts["skipped"] += 1
             _tick()
             continue
         if _is_active(session_json):
-            stats["deferred"] += 1
+            counts["deferred"] += 1
             _tick()
             continue
         if dry_run:
-            echo(f"[dry-run] {session_json} -> {dest}")
-            stats["synced"] += 1
+            counts["copied"] += 1
             _tick()
             continue
         try:
             lines = convert_gemini_to_jsonl(session_json)
             if lines:
                 dest.write_text("\n".join(lines) + "\n")
-                stats["synced"] += 1
-                new_synced.append(dest)
+                counts["copied"] += 1
+                copied.append(dest)
             else:
-                stats["failed"] += 1
-        except Exception as e:
-            echo(f"Failed to sync {session_json}: {e}")
-            stats["failed"] += 1
+                counts["failed"] += 1
+        except Exception:
+            counts["failed"] += 1
         _tick()
 
     if tty and total:
-        progress_done("sync")
+        progress_done("copy")
 
-    echo(f"Synced: {stats['synced']}")
-    echo(f"Skipped (unchanged): {stats['skipped']}")
-    if stats["deferred"]:
-        echo(f"Deferred (active): {stats['deferred']}")
-    if stats["failed"]:
-        echo(f"Failed: {stats['failed']}")
+    return copied, counts
 
-    if dry_run:
-        return
 
-    # Index into sqlite — only newly synced files unless --force
+def _index(copied: list[Path], force: bool = False) -> tuple[int, int]:
+    """Phase 2: index copied files into sessions.db. Returns (total, reindexed)."""
     conn = connect()
 
     if force:
-        # Full reindex: scan all files
         all_files = _iter_provider_files()
         current_keys = {_session_key(p, f) for p, f in all_files}
         existing_keys = {r[0] for r in conn.execute("SELECT key FROM sessions").fetchall()}
@@ -244,37 +268,41 @@ def sync(dry_run: bool = False, force: bool = False):
         if removed:
             conn.executemany("DELETE FROM sessions WHERE key = ?", [(k,) for k in removed])
         to_index = [(p, f, _session_key(p, f)) for p, f in all_files]
-    elif new_synced:
-        # Incremental: only index what we just copied
+    elif copied:
         to_index = []
-        for dest in new_synced:
+        for dest in copied:
             provider = dest.relative_to(SESSIONS_ROOT).parts[0]
             key = _session_key(provider, dest)
             to_index.append((provider, dest, key))
     else:
-        total_rows = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
         conn.close()
-        echo(f"Indexed: {total_rows:,} sessions (0 updated)")
-        return
+        return total, 0
+
+    tty = sys.stdout.isatty()
+    n = len(to_index)
+    if tty and n > 100:
+        progress(n, 0, "index")
 
     reindexed = 0
-    for provider, jsonl, key in to_index:
-        if not force:
-            # Always index new synced files
-            pass
-        else:
+    for i, (provider, jsonl, key) in enumerate(to_index):
+        if force:
             st = jsonl.stat()
             row = conn.execute(
                 "SELECT mtime, size FROM sessions WHERE key = ?", (key,)
             ).fetchone()
             if row and row["mtime"] == st.st_mtime and row["size"] == st.st_size:
+                if tty and n > 100:
+                    progress(n, i + 1, "index")
                 continue
 
         info = _index_file(jsonl)
         conn.execute(
             """INSERT OR REPLACE INTO sessions
-               (key, provider, session_id, path, mtime, size, created_at, has_assistant_turn, line_count, model)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (key, provider, session_id, path, mtime, size, created_at,
+                has_assistant_turn, line_count, model,
+                input_tokens, output_tokens, cache_read, cache_create, tool_calls, cost_usd)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 key,
                 provider,
@@ -286,12 +314,39 @@ def sync(dry_run: bool = False, force: bool = False):
                 int(info["has_assistant_turn"]),
                 info["line_count"],
                 info["model"],
+                info["input_tokens"],
+                info["output_tokens"],
+                info["cache_read"],
+                info["cache_create"],
+                info["tool_calls"],
+                info["cost_usd"],
             ),
         )
         reindexed += 1
+        if tty and n > 100:
+            progress(n, i + 1, "index")
+
+    if tty and n > 100:
+        progress_done("index")
 
     conn.commit()
-    total_rows = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     conn.close()
+    return total, reindexed
 
-    echo(f"Indexed: {total_rows:,} sessions ({reindexed} updated)")
+
+@cli("sesh", description="copy sessions from native paths and index into sessions.db")
+def sync(dry_run: bool = False, force: bool = False):
+    # Phase 1: copy
+    copied, counts = _copy(dry_run=dry_run)
+    echo(f"Copied: {counts['copied']}  Skipped: {counts['skipped']}  Deferred: {counts['deferred']}", end="")
+    if counts["failed"]:
+        echo(f"  Failed: {counts['failed']}", end="")
+    echo()
+
+    if dry_run:
+        return
+
+    # Phase 2: index
+    total, reindexed = _index(copied, force=force)
+    echo(f"Indexed: {total:,} sessions ({reindexed} updated)")

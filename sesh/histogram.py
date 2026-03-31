@@ -13,7 +13,7 @@ def histogram(
     width: int = 50,
 ):
     conn = connect()
-    clauses = ["created_at IS NOT NULL"]
+    clauses = ["created_at IS NOT NULL", "created_at > datetime('now', ?)"]
     params: list[object] = [f"-{days} days"]
 
     if model:
@@ -27,7 +27,7 @@ def histogram(
     rows = conn.execute(
         f"""SELECT date(created_at) as day, COUNT(*) as cnt
             FROM sessions
-            WHERE {where} AND created_at > datetime('now', ?)
+            WHERE {where}
             GROUP BY day ORDER BY day""",
         params,
     ).fetchall()
