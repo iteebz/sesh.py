@@ -104,7 +104,7 @@ def test_index_file_basic(tmp_path):
             {"type": "assistant", "role": "assistant", "message": {"content": "hi"}},
         ],
     )
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         entry = _index_file(path)
         assert entry["line_count"] == 2
         assert entry["has_assistant_turn"] is True
@@ -119,6 +119,6 @@ def test_index_file_no_assistant(tmp_path):
         "user-only.jsonl",
         [{"type": "user", "message": {"content": "hello"}}],
     )
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         entry = _index_file(path)
         assert entry["has_assistant_turn"] is False

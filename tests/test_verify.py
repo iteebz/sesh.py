@@ -20,14 +20,14 @@ def test_verify_file_ok(tmp_path):
         "ok.jsonl",
         json.dumps({"type": "user", "message": {"content": "hello"}}) + "\n",
     )
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         issues = verify_file("claude", root / "claude" / "ok.jsonl")
         assert issues == []
 
 
 def test_verify_file_empty(tmp_path):
     root = _make_session(tmp_path, "claude", "empty.jsonl", "")
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         issues = verify_file("claude", root / "claude" / "empty.jsonl")
         assert len(issues) == 1
         assert issues[0].kind == "empty"
@@ -40,7 +40,7 @@ def test_verify_file_corrupt_lines(tmp_path):
         "corrupt.jsonl",
         json.dumps({"type": "user"}) + "\nnot json\n" + json.dumps({"type": "assistant"}) + "\n",
     )
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         issues = verify_file("claude", root / "claude" / "corrupt.jsonl")
         assert len(issues) == 1
         assert issues[0].kind == "corrupt_lines"
@@ -49,7 +49,7 @@ def test_verify_file_corrupt_lines(tmp_path):
 
 def test_verify_file_no_data(tmp_path):
     root = _make_session(tmp_path, "claude", "whitespace.jsonl", "\n\n\n")
-    with patch("sesh.discover.SESSIONS_ROOT", root):
+    with patch("sesh.sync.SESSIONS_ROOT", root):
         issues = verify_file("claude", root / "claude" / "whitespace.jsonl")
         assert any(i.kind == "no_data" for i in issues)
 
@@ -65,7 +65,7 @@ def test_verify_all(tmp_path):
         path.write_text(content)
 
     with patch("sesh.verify._iter_provider_files") as mock_iter:
-        with patch("sesh.discover.SESSIONS_ROOT", root):
+        with patch("sesh.sync.SESSIONS_ROOT", root):
             mock_iter.return_value = [
                 ("claude", root / "claude" / "good.jsonl"),
                 ("claude", root / "claude" / "bad.jsonl"),
