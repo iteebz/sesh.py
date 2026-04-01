@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -15,8 +16,6 @@ def test_is_active_recent(tmp_path):
 def test_is_active_old(tmp_path):
     f = tmp_path / "test.jsonl"
     f.write_text("data")
-    import os
-
     old_time = time.time() - 120
     os.utime(f, (old_time, old_time))
     assert _is_active(f) is False
@@ -31,8 +30,6 @@ def test_is_unchanged_matching(tmp_path):
     dest = tmp_path / "dest.jsonl"
     src.write_text("data")
     dest.write_text("data")
-    import os
-
     t = time.time() - 10
     os.utime(src, (t, t))
     os.utime(dest, (t + 1, t + 1))
