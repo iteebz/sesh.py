@@ -4,8 +4,7 @@ Source of truth: space.db spawns table (spawn_id → session_id).
 File store: ~/.sesh/<provider>/ (synced from ~/.claude/projects/).
 
 The seed command looks up each DB spawn's session_id in sesh,
-copies the matching JSONL to ~/.space/spawns/<provider>/<spawn_id>.jsonl,
-the canonical location space's event pipeline reads from.
+copies the matching JSONL to ~/.space/traces/<provider>/<spawn_id>.jsonl.
 """
 
 import shutil
@@ -18,8 +17,8 @@ from fncli import cli
 from sesh.db import SESSIONS_ROOT
 from sesh.display import progress, progress_done
 
-SPACE_DB = Path("~/.space/space.db").expanduser()
-SEED_ROOT = Path("~/.space/spawns").expanduser()
+SPACE_DB = Path("~/.engine/space.db").expanduser()
+SEED_ROOT = Path("~/.space/traces").expanduser()
 
 echo = print
 

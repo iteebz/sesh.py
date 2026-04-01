@@ -37,8 +37,8 @@ def _check_ci() -> CheckResult:
 
 def _check_session_sources() -> CheckResult:
     sources = [
-        Path.home() / ".space" / "spawns",
-        Path.home() / ".space" / "sessions",
+        Path.home() / ".space" / "traces",
+        Path.home() / ".engine" / "traces",
         Path.home() / "Library" / "Application Support" / "Claude" / "projects",
         Path.home() / ".codex" / "sessions",
     ]
