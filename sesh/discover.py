@@ -1,8 +1,9 @@
+import contextlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from sesh.db import SESSIONS_ROOT, connect
+from sesh.db import connect
 
 
 @dataclass
@@ -59,16 +60,13 @@ class SessionFile:
     @property
     def created_at(self) -> datetime:
         if self._created_at_str:
-            try:
+            with contextlib.suppress(Exception):
                 return datetime.fromisoformat(self._created_at_str).astimezone()
-            except Exception:
-                pass
         return datetime.fromtimestamp(self.mtime).astimezone()
 
     @property
     def created_at_ts(self) -> float:
         return self.created_at.timestamp()
-
 
 
 def _sf_from_row(row) -> SessionFile:
@@ -109,7 +107,7 @@ def discover_sessions(
         params.append(f"-{days} days")
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    sql = f"SELECT * FROM sessions {where} ORDER BY mtime DESC"
+    sql = f"SELECT * FROM sessions {where} ORDER BY mtime DESC"  # noqa: S608
     if limit:
         sql += f" LIMIT {limit}"
 

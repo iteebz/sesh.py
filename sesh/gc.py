@@ -7,11 +7,12 @@ Categories:
   orphan   — file on disk not in index
 """
 
+import contextlib
 from pathlib import Path
 
 from fncli import cli
 
-from sesh.db import SESSIONS_ROOT, connect
+from sesh.db import connect
 from sesh.fmt import size as fmt_size
 
 echo = print
@@ -49,7 +50,7 @@ def gc(
         if category and cat != category:
             continue
         rows = conn.execute(
-            f"SELECT session_id, path, provider, size FROM sessions WHERE {where} ORDER BY mtime DESC"
+            f"SELECT session_id, path, provider, size FROM sessions WHERE {where} ORDER BY mtime DESC"  # noqa: S608
         ).fetchall()
         count = len(rows)
         size = sum(r["size"] for r in rows)
@@ -59,8 +60,7 @@ def gc(
         echo(f"  {cat:<8} {count:>6,} sessions  {fmt_size(size):>8}")
 
         if ids:
-            for r in rows[:limit]:
-                all_ids.append((cat, r["session_id"], r["provider"], r["size"]))
+            all_ids.extend((cat, r["session_id"], r["provider"], r["size"]) for r in rows[:limit])
 
     # Check for source files that could also be cleaned
     source_matches = 0
@@ -76,10 +76,8 @@ def gc(
         for jsonl in CLAUDE_PROJECTS.rglob("*.jsonl"):
             if jsonl.stem in garbage_ids:
                 source_matches += 1
-                try:
+                with contextlib.suppress(OSError):
                     source_bytes += jsonl.stat().st_size
-                except OSError:
-                    pass
 
     total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     conn.close()
@@ -87,9 +85,13 @@ def gc(
     echo()
     echo(f"  total    {total_garbage:>6,} sessions  {fmt_size(total_bytes):>8}")
     if source_matches:
-        echo(f"  source   {source_matches:>6,} cleanable in ~/.claude/  {fmt_size(source_bytes):>8}")
+        echo(
+            f"  source   {source_matches:>6,} cleanable in ~/.claude/  {fmt_size(source_bytes):>8}"
+        )
     echo()
-    echo(f"  {total_garbage / max(total_sessions, 1) * 100:.0f}% of {total_sessions:,} sessions are garbage")
+    echo(
+        f"  {total_garbage / max(total_sessions, 1) * 100:.0f}% of {total_sessions:,} sessions are garbage"
+    )
 
     if ids and all_ids:
         echo()

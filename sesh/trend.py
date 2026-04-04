@@ -33,7 +33,9 @@ def _grad(i: int, width: int) -> str:
     return f"\033[38;2;{r};{g};{b}m"
 
 
-def _braille(values: list[float], width: int = CHART_WIDTH, height: int = CHART_HEIGHT) -> list[str]:
+def _braille(
+    values: list[float], width: int = CHART_WIDTH, height: int = CHART_HEIGHT
+) -> list[str]:
     if not values:
         return []
 
@@ -107,7 +109,7 @@ def trend(
         f"""SELECT date(created_at) as day, COUNT(*) as cnt
             FROM sessions
             WHERE {where}
-            GROUP BY day ORDER BY day""",
+            GROUP BY day ORDER BY day""",  # noqa: S608
         params,
     ).fetchall()
     conn.close()
@@ -137,7 +139,9 @@ def trend(
     if model:
         label = f"{model} sessions"
     echo()
-    echo(f"  {bold}{label}{reset}  {dim}{len(days_list)}d  avg {avg:.0f}/day  peak {peak:.0f}{reset}")
+    echo(
+        f"  {bold}{label}{reset}  {dim}{len(days_list)}d  avg {avg:.0f}/day  peak {peak:.0f}{reset}"
+    )
     echo()
 
     chart = _braille(chart_values)

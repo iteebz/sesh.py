@@ -28,7 +28,7 @@ def histogram(
         f"""SELECT date(created_at) as day, COUNT(*) as cnt
             FROM sessions
             WHERE {where}
-            GROUP BY day ORDER BY day""",
+            GROUP BY day ORDER BY day""",  # noqa: S608
         params,
     ).fetchall()
     conn.close()
