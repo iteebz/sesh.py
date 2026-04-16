@@ -3,11 +3,6 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "atrace"
-version = "0.1.0"
-source = { git = "https://github.com/iteebz/trace.git#2593a1381230489589cae6bf5f7963f7be1d9611" }
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -125,7 +120,6 @@ name = "sesh"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "atrace" },
     { name = "fncli" },
 ]
 
@@ -137,10 +131,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "atrace", git = "https://github.com/iteebz/trace.git" },
-    { name = "fncli", git = "https://github.com/iteebz/fncli.git" },
-]
+requires-dist = [{ name = "fncli", git = "https://github.com/iteebz/fncli.git" }]
 
 [package.metadata.requires-dev]
 dev = [
