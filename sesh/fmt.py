@@ -1,6 +1,6 @@
 """Shared formatting utilities."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def ago(ts: float | str) -> str:
@@ -8,8 +8,8 @@ def ago(ts: float | str) -> str:
     if isinstance(ts, str):
         dt = datetime.fromisoformat(ts)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        secs = int((datetime.now(tz=timezone.utc) - dt).total_seconds())
+            dt = dt.replace(tzinfo=UTC)
+        secs = int((datetime.now(tz=UTC) - dt).total_seconds())
     else:
         secs = int(datetime.now().timestamp() - ts)
     if secs < 60:

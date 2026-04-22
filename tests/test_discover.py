@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from sesh.discover import SessionFile, discover_sessions
-from sesh.sync import _iter_provider_files, _session_key, _index_file
 from sesh.db import connect
+from sesh.discover import SessionFile, discover_sessions
+from sesh.sync import _index_file, _iter_provider_files, _session_key
 
 
 def _make_store(tmp: Path, structure: dict[str, list[str]]) -> Path:
@@ -40,11 +40,25 @@ def _index_store(root: Path):
                 input_tokens, output_tokens, cache_read, cache_create, tool_calls, cost_usd,
                 parent_session_id)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (key, provider, jsonl.stem, str(jsonl), info["mtime"], info["size"],
-             info["created_at"], int(info["has_assistant_turn"]), info["line_count"],
-             info["model"], info["input_tokens"], info["output_tokens"], info["cache_read"],
-             info["cache_create"], info["tool_calls"], info["cost_usd"],
-             info["parent_session_id"]),
+            (
+                key,
+                provider,
+                jsonl.stem,
+                str(jsonl),
+                info["mtime"],
+                info["size"],
+                info["created_at"],
+                int(info["has_assistant_turn"]),
+                info["line_count"],
+                info["model"],
+                info["input_tokens"],
+                info["output_tokens"],
+                info["cache_read"],
+                info["cache_create"],
+                info["tool_calls"],
+                info["cost_usd"],
+                info["parent_session_id"],
+            ),
         )
     conn.commit()
     conn.close()
@@ -85,10 +99,12 @@ def test_discover_sessions_all(tmp_path):
         {"claude": ["a.jsonl", "sub/b.jsonl"], "codex": ["c.jsonl"]},
     )
     db_path = root / "sessions.db"
-    with patch("sesh.sync.SESSIONS_ROOT", root), \
-         patch("sesh.db.SESSIONS_ROOT", root), \
-         patch("sesh.db.DB_PATH", db_path), \
-         patch("sesh.discover.connect", connect):
+    with (
+        patch("sesh.sync.SESSIONS_ROOT", root),
+        patch("sesh.db.SESSIONS_ROOT", root),
+        patch("sesh.db.DB_PATH", db_path),
+        patch("sesh.discover.connect", connect),
+    ):
         _index_store(root)
         sessions = discover_sessions()
         assert len(sessions) == 3
@@ -100,10 +116,12 @@ def test_discover_sessions_filter(tmp_path):
         {"claude": ["a.jsonl"], "codex": ["b.jsonl"]},
     )
     db_path = root / "sessions.db"
-    with patch("sesh.sync.SESSIONS_ROOT", root), \
-         patch("sesh.db.SESSIONS_ROOT", root), \
-         patch("sesh.db.DB_PATH", db_path), \
-         patch("sesh.discover.connect", connect):
+    with (
+        patch("sesh.sync.SESSIONS_ROOT", root),
+        patch("sesh.db.SESSIONS_ROOT", root),
+        patch("sesh.db.DB_PATH", db_path),
+        patch("sesh.discover.connect", connect),
+    ):
         _index_store(root)
         sessions = discover_sessions(provider_filter="codex")
         assert len(sessions) == 1

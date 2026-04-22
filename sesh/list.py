@@ -33,4 +33,6 @@ def list_(
         short_model = m.split("/")[-1]
         if len(short_model) > 30:
             short_model = short_model[:30]
-        echo(f"{dt}  {s.provider:<7} {short_model:<32} {s.session_id[:12]}  {s.line_count:>5} lines")
+        echo(
+            f"{dt}  {s.provider:<7} {short_model:<32} {s.session_id[:12]}  {s.line_count:>5} lines"
+        )

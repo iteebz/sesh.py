@@ -106,7 +106,9 @@ def _index_file(jsonl: Path) -> dict:
                     if sid and sid != file_stem:
                         parent_session_id = sid
                 msg_type = raw.get("type", "")
-                if not has_assistant and (msg_type == "assistant" or raw.get("role") == "assistant"):
+                if not has_assistant and (
+                    msg_type == "assistant" or raw.get("role") == "assistant"
+                ):
                     has_assistant = True
                 msg = raw.get("message", {})
                 if isinstance(msg, dict):
@@ -356,7 +358,10 @@ def _index(copied: list[Path], force: bool = False) -> tuple[int, int]:
 def sync(dry_run: bool = False, force: bool = False):
     # Phase 1: copy
     copied, counts = _copy(dry_run=dry_run)
-    echo(f"Copied: {counts['copied']}  Skipped: {counts['skipped']}  Deferred: {counts['deferred']}", end="")
+    echo(
+        f"Copied: {counts['copied']}  Skipped: {counts['skipped']}  Deferred: {counts['deferred']}",
+        end="",
+    )
     if counts["failed"]:
         echo(f"  Failed: {counts['failed']}", end="")
     echo()

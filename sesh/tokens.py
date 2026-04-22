@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from fncli import cli
 
 from sesh.discover import discover_sessions
-from sesh.parse import TokenUsage, parse_session
 from sesh.fmt import tokens as format_tokens
+from sesh.parse import TokenUsage, parse_session
 from sesh.stats import estimate_cost
 
 echo = print
