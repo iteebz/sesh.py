@@ -3,6 +3,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from fncli import cli
 
@@ -77,7 +78,7 @@ def _estimate_cost(model: str | None, inp: int, out: int, cr: int, cc: int) -> f
     return 0.0
 
 
-def _index_file(jsonl: Path) -> dict:
+def _index_file(jsonl: Path) -> dict[str, Any]:
     created_at = None
     has_assistant = False
     line_count = 0

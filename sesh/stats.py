@@ -36,7 +36,7 @@ def stats(
     conn = connect()
 
     prov_clause = "WHERE provider = ?" if provider else ""
-    prov_params: tuple = (provider,) if provider else ()
+    prov_params: tuple[str, ...] = (provider,) if provider else ()
 
     total = conn.execute(f"SELECT COUNT(*) FROM sessions {prov_clause}", prov_params).fetchone()[0]  # noqa: S608
     if not total:
